@@ -1,6 +1,6 @@
 -- Author    : David Haley
 -- Created   : 16/06/2020
--- Last Edit : 16/06/2020
+-- Last Edit : 07/12/2020
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Streams; use Ada.Streams;
@@ -18,6 +18,10 @@ procedure Test_Hex is
    Output_File : File_Type;
 
    package S_IO is new Ada.Text_IO.Modular_IO (Stream_Element);
+
+   Digit_Text : constant String := "0123456789";
+   Lower_Text : constant String := "abcdefghijklmnopqrstuvwxyz";
+   Upper_Text : constant String := "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 begin
    Create (Output_File, Out_File, "Hex_Test.txt");
@@ -46,5 +50,17 @@ begin
          New_Line (Output_File);
       end loop; -- J in Stream_Element
    end loop; -- I in Stream_Element
+   Put_Line (Output_File, "String tests");
+   Put_Line (Output_File, Digit_Text);
+   Put_Line (Output_File, To_Hex (Digit_Text));
+   Put_Line (Output_File, To_String (To_Hex (Digit_Text)));
+   New_Line (Output_File);
+   Put_Line (Output_File, Lower_Text);
+   Put_Line (Output_File, To_Hex (Lower_Text));
+   Put_Line (Output_File, To_String (To_Hex (Lower_Text)));
+   New_Line (Output_File);
+   Put_Line (Output_File, Upper_Text);
+   Put_Line (Output_File, To_Hex (Upper_Text));
+   Put_Line (Output_File, To_String (To_Hex (Upper_Text)));
    Close (Output_File);
 end Test_Hex;

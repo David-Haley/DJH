@@ -1,7 +1,9 @@
 -- Author    : David Haley
 -- Created   : 16/06/2020
--- Last Edit : 16/06/2020
--- Provides conversions to and from Stream_Elements hex characters
+-- Last Edit : 07/12/2020
+-- Provides conversions to and from Stream_Elements hex characters and String to
+-- hex characters
+-- 20201207 : String to hex and reverse added
 
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -57,6 +59,19 @@ package body DJH.Hex is
       return Result;
    end To_Hex;
 
+   function To_Hex (N : in String) return String is
+
+      Result : String (1 .. Positive (2 * (N'Last - N'First + 1)));
+      I_s : Positive := Result'First;
+
+   begin -- To_Hex
+      for I in N'Range loop
+         Result (I_s .. I_s + 1) := Hex_Lookup (Character'Pos (N (I)));
+         I_s := I_s + 2;
+      end loop; -- I in N'Range
+      return Result;
+   end To_Hex;
+
    function To_Stream (S : String) return Stream_Element_Array is
 
       Result : Stream_Element_Array (Stream_Element_Offset'First ..
@@ -88,6 +103,30 @@ package body DJH.Hex is
       end loop; --  I >= S'First
       return Result;
    end To_Stream;
+
+   function To_String (S : in String) return String is
+
+      Result : String (1 .. S'Length / 2);
+      I : Natural := S'Last;
+      J : Natural := Result'Last;
+      S_E : Stream_Element;
+      Last : Positive;
+
+   begin -- To_String
+      if S'Length mod 2 /= 0 then
+         raise Data_Error with "Odd number of hex digits";
+      end if; -- S'Length mod 2 /= 0
+      while I >= S'First loop
+         S_IO.Get ("16#" & S (I - 1 .. I) & '#', S_E, Last);
+         Result (J) := Character'Val (S_E);
+         if Last /= 6 then
+            raise Data_Error with "Bad Hex number " & S (I - 1 .. I);
+         end if; -- Last /= 6;
+         I := I - 2;
+         J := J - 1;
+      end loop; --  I >= S'First
+      return Result;
+   end To_String;
 
 begin -- DJH.Hex
    S_IO.Default_Base := 16;
