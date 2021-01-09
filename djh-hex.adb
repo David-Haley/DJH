@@ -1,9 +1,10 @@
 -- Author    : David Haley
 -- Created   : 16/06/2020
--- Last Edit : 07/12/2020
+-- Last Edit : 08/01/2021
 -- Provides conversions to and from Stream_Elements hex characters and String to
 -- hex characters
--- 20201207 : String to hex and reverse added
+-- 20210108: Remamed to avoid issues with Digest returning Strings
+-- 20201207: String to hex and reverse added
 
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -59,18 +60,18 @@ package body DJH.Hex is
       return Result;
    end To_Hex;
 
-   function To_Hex (N : in String) return String is
+   function String_To_Hex (N : in String) return String is
 
       Result : String (1 .. Positive (2 * (N'Last - N'First + 1)));
       I_s : Positive := Result'First;
 
-   begin -- To_Hex
+   begin -- String_To_Hex
       for I in N'Range loop
          Result (I_s .. I_s + 1) := Hex_Lookup (Character'Pos (N (I)));
          I_s := I_s + 2;
       end loop; -- I in N'Range
       return Result;
-   end To_Hex;
+   end String_To_Hex;
 
    function To_Stream (S : String) return Stream_Element_Array is
 
@@ -104,7 +105,7 @@ package body DJH.Hex is
       return Result;
    end To_Stream;
 
-   function To_String (S : in String) return String is
+   function Hex_To_String (S : in String) return String is
 
       Result : String (1 .. S'Length / 2);
       I : Natural := S'Last;
@@ -112,7 +113,7 @@ package body DJH.Hex is
       S_E : Stream_Element;
       Last : Positive;
 
-   begin -- To_String
+   begin -- Hex_To_String
       if S'Length mod 2 /= 0 then
          raise Data_Error with "Odd number of hex digits";
       end if; -- S'Length mod 2 /= 0
@@ -126,7 +127,7 @@ package body DJH.Hex is
          J := J - 1;
       end loop; --  I >= S'First
       return Result;
-   end To_String;
+   end Hex_To_String;
 
 begin -- DJH.Hex
    S_IO.Default_Base := 16;

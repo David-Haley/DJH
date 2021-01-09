@@ -52,15 +52,15 @@ begin
    end loop; -- I in Stream_Element
    Put_Line (Output_File, "String tests");
    Put_Line (Output_File, Digit_Text);
-   Put_Line (Output_File, To_Hex (Digit_Text));
-   Put_Line (Output_File, To_String (To_Hex (Digit_Text)));
+   Put_Line (Output_File, String_To_Hex (Digit_Text));
+   Put_Line (Output_File, Hex_To_String (String_To_Hex (Digit_Text)));
    New_Line (Output_File);
    Put_Line (Output_File, Lower_Text);
-   Put_Line (Output_File, To_Hex (Lower_Text));
-   Put_Line (Output_File, To_String (To_Hex (Lower_Text)));
+   Put_Line (Output_File, String_To_Hex (Lower_Text));
+   Put_Line (Output_File, Hex_To_String (String_To_Hex (Lower_Text)));
    New_Line (Output_File);
    Put_Line (Output_File, Upper_Text);
-   Put_Line (Output_File, To_Hex (Upper_Text));
-   Put_Line (Output_File, To_String (To_Hex (Upper_Text)));
+   Put_Line (Output_File, String_To_Hex (Upper_Text));
+   Put_Line (Output_File, Hex_To_String (String_To_Hex (Upper_Text)));
    Close (Output_File);
 end Test_Hex;
