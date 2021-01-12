@@ -5,7 +5,9 @@ with Ada.Numerics.Discrete_Random;
 
 -- Author    : David Haley
 -- Created   : 07/12/2020
--- Last Edit : 07/12/2020
+-- Last Edit : 12/01/2021
+-- 20210112: Calculation of OTP_Index corrected to ensure full lenth of OTP
+-- used.
 
 package body DJH.One_Time is
 
@@ -94,7 +96,7 @@ package body DJH.One_Time is
          if Plain_Text (I) in Code_Chars then
             Plain_Index := To_Ch_Index (Plain_Text (I));
             OTP_Index :=
-              To_Ch_Index (OTP_Text ((I - 1) mod (OTP_Text'Length - 1) + 1));
+              To_Ch_Index (OTP_Text ((I - 1) mod (OTP_Text'Length) + 1));
             Coded_Text (I) :=
               To_Code_Char ((Plain_Index + OTP_Index) mod Map_Modulus);
             -- encoded by stepping forward OTP_Index characters
@@ -120,7 +122,7 @@ package body DJH.One_Time is
          if Coded_Text (I) in Code_Chars then
             Code_Index := To_Ch_Index (Coded_Text (I));
             OTP_Index :=
-              To_Ch_Index (OTP_Text ((I - 1) mod (OTP_Text'Length - 1) + 1));
+              To_Ch_Index (OTP_Text ((I - 1) mod (OTP_Text'Length) + 1));
             Plain_Text (I) :=
               To_Code_Char ((Code_Index - OTP_Index) mod Map_Modulus);
             -- decoded by stepping back OTP_Index characters
