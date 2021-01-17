@@ -11,11 +11,13 @@ use AWS;
 
 package body DJH.Email is
 
+   -- Sends email using AWS package and is based on example code;
+
    -- Author    : David Haley
    -- Created   : 05/12/2020
-   -- Last Edit : 06/12/2020
-
-   -- Sends email using AWS package and is based on example code;
+   -- Last Edit : 17/01/2021
+   -- 20210117: Message file explicetly closed after the file is read, prevents
+   -- file sharing exception.
 
    type Details is record
       Initalised : Boolean := False;
@@ -81,6 +83,7 @@ package body DJH.Email is
             Get_Line (Message_File, Text);
             Message := Message & Text & LF;
          end loop; -- not End_Of_File (Message_File)
+         Close (Message_File);
          Message := Message & LF & "Regards" & LF & LF & Detail.From_Name & LF;
          SMTP.Client.Send
            (Server,
