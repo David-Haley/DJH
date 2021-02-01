@@ -15,17 +15,18 @@ package body DJH.Email is
 
    -- Author    : David Haley
    -- Created   : 05/12/2020
-   -- Last Edit : 17/01/2021
+   -- Last Edit : 01/02/2021
+   -- 20210201: The sender email was not correctly transferred to Details;
    -- 20210117: Message file explicetly closed after the file is read, prevents
    -- file sharing exception.
 
    type Details is record
       Initalised : Boolean := False;
-      SMTP_Server : Unbounded_String;
-      From_Name : Unbounded_String;
-      From_Email : Unbounded_String;
-      User_Name : Unbounded_String;
-      Password : Unbounded_String;
+      SMTP_Server : Unbounded_String := Null_Unbounded_String;
+      From_Name : Unbounded_String := Null_Unbounded_String;
+      From_Email : Unbounded_String := Null_Unbounded_String;
+      User_Name : Unbounded_String := Null_Unbounded_String;
+      Password : Unbounded_String := Null_Unbounded_String;
    end record; -- Details
 
    Detail : Details;
@@ -42,7 +43,7 @@ package body DJH.Email is
       Detail.Initalised := True;
       Detail.SMTP_Server := To_Unbounded_String (SMTP_Server);
       Detail.From_Name := To_Unbounded_String (From_Name);
-      Detail.From_Name := To_Unbounded_String (From_Name);
+      Detail.From_Email := To_Unbounded_String (From_Email);
       Detail.User_Name := To_Unbounded_String (User_Name);
       Detail.Password := To_Unbounded_String (Password);
    end;
@@ -103,7 +104,7 @@ package body DJH.Email is
    exception
       when E : others =>
          Status := False;
-         Status_Report := To_Unbounded_String ("Exception Message: "&
+         Status_Report := To_Unbounded_String ("Exception Message: " &
                                                  Exception_Message(E));
    end Send_Email;
 
