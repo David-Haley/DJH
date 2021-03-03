@@ -1,11 +1,13 @@
 -- This package provides date and Time strings for the current time.
 -- Author    : David Haley
 -- Created   : 21/10/2017
--- Last Edit : 11/07/2020
+-- Last Edit : 03/03/2021
+-- Unification between the PC and Raspberry Pi versions
 -- 20200711 : Date_Only added
 -- 20200620 : Date string comment corected from DD/MM/YY to DD/MM/YYYY, Get_Date
 -- added.
 -- 20200517: Made child of DJH and Time_of_Day added
+-- 20191107 : Posix_Times added and associated Time_String added.
 -- 20191024: Hours_More_Than_24 switch added to allow accumulated hours more
 -- than 23:59:59 to be displayed as hours.
 
@@ -19,6 +21,8 @@ package DJH.Date_and_Time_Strings is
    subtype Time_Strings is String (1 .. 8); -- HH:MM:SS
 
    subtype Date_Strings is String (1 .. 10); -- DD/MM/YYYY
+
+   type Posix_Times is new Integer;
 
    function Elapsed_Seconds
      (Seconds_Count : Natural;
@@ -47,6 +51,9 @@ package DJH.Date_and_Time_Strings is
    function Time_String (Another_Time : in Time := Clock) return Time_Strings;
    -- returns HH:MM:SS in twenty four hour mode
 
+   function Time_String (Poxix_Time : in Posix_Times) return String;
+   -- returns HH:MM:SS difference from current time
+   
    function Time_of_Day (Time_String : in Time_Strings) return Day_Duration;
    -- returns Ada.Calendar.Formatting Day_Duration represented by a Time_String
    -- formatted as HH:MM:SS.

@@ -1,17 +1,22 @@
 -- This package provides date and Time strings for the current time.
 -- Author    : David Haley
 -- Created   : 21/10/2017
--- Last Edit : 11/07/2020
+-- Last Edit : 03/03/2021
+-- 20210303 : Unification between PC and Raspberry Pi versions
 -- 20200711 : Date_Only added
 -- 20200620 : Date string comment corected from DD/MM/YY to DD/MM/YYYY, Get_Date
 -- added.
+-- 20191107 : Posix_Times added and associated Time_String added.
 -- 20200517: Made child of DJH and Time_of_Day added
 -- 20191024: Hours_More_Than_24 switch added to allow accumulated hours more
 -- than 23:59:59 to be displayed as hours.
 
+with Ada.Calendar; use Ada.Calendar;
+with Ada.Calendar.Time_Zones; use Ada.Calendar.Time_Zones;
+with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
+with  Ada.Calendar.Formatting; use Ada.Calendar.Formatting;
 with Ada.Strings.Maps; use Ada.Strings.Maps;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
-with Ada.Calendar.Formatting; use Ada.Calendar.Formatting;
 
 package body DJH.Date_and_Time_Strings is
 
@@ -283,4 +288,28 @@ package body DJH.Date_and_Time_Strings is
       return Ada.Calendar.Time_Of (Year, Month, Day, Seconds);
    end Date_Only;
 
+function Time_String (Poxix_Time : in Posix_Times) return String is
+      -- returns HH:MM:SS difference from current time
+
+      Posix_Epoch : time := Time_Of (Year => 1970,
+                                     Month => 1,
+                                     Day => 1,
+                                     Hour => 0,
+                                     Minute => 0,
+                                     Second => 0,
+                                     Time_Zone => 0);
+      Days : Day_Count;
+      Seconds, Difference_Seconds : Duration;
+      Leap_Seconds : Leap_Seconds_Count;
+
+
+   begin -- Time_String
+      Difference (Clock, Posix_Epoch, Days, Seconds, Leap_Seconds);
+      Difference_Seconds := Duration (Poxix_Time
+                                      - Posix_Times (Days * 24 * 3600)
+                                      - Posix_Times (Seconds)
+                                      - Posix_Times (Leap_Seconds));
+      return Image (Difference_Seconds);
+   end Time_String;
+   
 end DJH.Date_and_Time_Strings;
