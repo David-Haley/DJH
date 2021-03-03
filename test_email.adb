@@ -17,12 +17,10 @@ begin -- Test_Email
           User_Name => "david.haley@bigpond.com",
           Password => To_String (Password));
    Send_Email (Message_File_Name => "Test_Email_Body.txt",
-               Attachment_File_Name => "c:\users\david\documents\brisbane " &
-                 "southside masters\attendance_trial\" &
-                 "report\202010\797173_20201031.txt",
-               To_Name => "Josh Hemelaar",
+               Attachment_File_Name => "Test_Email_Attachment.txt",
+               To_Name => "David J Haley",
                To_Email => "dj_haley@bigpond.net.au",
-               Subject => "BSM Session Statement - October 2020",
+               Subject => "AWS Email Test",
                Status => Success,
                Status_Report => Status_Report);
    Put_Line (Boolean'Image (Success) & " """ & Status_Report & """");
