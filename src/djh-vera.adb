@@ -2,7 +2,7 @@
 -- Author    : David Haley
 -- Created   : 02/04/2019
 -- Last Edit : 16/09/2023
--- 20230915: Localisation of condtants.
+-- 20230915: Localisation of constants.
 -- 20210608: moved to DJH library
 
 with Ada.Text_IO; use Ada.Text_IO;
