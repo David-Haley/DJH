@@ -1,7 +1,8 @@
 -- HTTP interface to vera
 -- Author    : David Haley
 -- Created   : 02/04/2019
--- Last Edit : 08/06/2019
+-- Last Edit : 16/09/2023
+-- 20230915: Localisation of condtants.
 -- 20210608: moved to DJH library
 
 with Ada.Text_IO; use Ada.Text_IO;
@@ -14,11 +15,6 @@ with GNAT.Sockets; use GNAT.Sockets;
 
 package body DJH.Vera is
 
-   Vera_Port : constant Port_Type := 3480;
-   Response_1 : constant String := "HTTP/1.1 200 OK";
-   Response_2 : constant String := "content-Type: application/json";
-   Response_3 : constant String := "{ ""u:SetTargetResponse"": { ""JobID"": """;
-
    subtype States is Character range '0' .. '1';
 
    package Device_IO is new Ada.Text_IO.Integer_IO (Devices);
@@ -26,6 +22,7 @@ package body DJH.Vera is
    function HTTP_GET (Name : in String;
                       Command : in String) return Unbounded_String is
 
+      Vera_Port : constant Port_Type := 3480;
       CrLf : constant String := ASCII.CR & ASCII.LF;
 
       Host_Entry : Host_Entry_Type := Get_Host_By_Name(Name);
