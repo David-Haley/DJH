@@ -1,7 +1,9 @@
 -- This package manages the event and error logging
 -- Author    : David Haley
 -- Created   : 20/02/2021
--- Last Edit : 20/08/2022
+-- Last Edit : 23/09/2023
+-- 20230923: Removal of redundant spaces from event log messages, error log now
+-- comma delimited.
 -- 20220820: Moved to DJH.Events_and_Errors
 -- 20210303 : Unified version of data and time strings used
 
@@ -38,8 +40,8 @@ package body DJH.Events_and_Errors is
       -- Writes an event message to Event_Log.txt
 
    begin -- Put_Event
-      Put_Line (Event_File, Date_String (Full_Date) & ", " & Time_String &
-                  ", """ & Event_Text & """");
+      Put_Line (Event_File, Date_String (Full_Date) & ',' & Time_String &
+                  ",""" & Event_Text & """");
       Flush (Event_File);
    end Put_Event;
 
@@ -49,9 +51,9 @@ package body DJH.Events_and_Errors is
       -- Writes an error message to Error_Log.txt
 
    begin -- Put_Error
-      Put_Line (Error_File, Date_String (Full_Date) & ' ' &
-                  Time_String & ' ' & Error_Text & " - " &
-                  Exception_Message (Event));
+      Put_Line (Error_File, Date_String (Full_Date) & ',' &
+                  Time_String & ",""" & Error_Text & " - " &
+                  Exception_Message (Event) & """");
       Flush (Error_File);
    end Put_Error;
 
