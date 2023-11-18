@@ -1,9 +1,12 @@
 -- Package for parsing CSV files. Assumes column headers in the first row which
--- can be read as a super set of the values of Header_Labels.
+-- can be read as a super set of the values of Header_Labels. No_Header allows
+-- files without header rows to be processed. When using No_Header all columns
+-- up to the last column to be read must be named in Header_Lables.
 
 -- Author    : David Haley
 -- Created   : 13/07/2020
--- Last Edit : 19/05/2021
+-- Last Edit : 19/11/2023
+-- 20231119: No Header added, to allow reading of files with no header row.
 -- 20220519 : Allows for processing of Windows text files with CR in Linux.
 -- 20220515 : File interface changed.
 -- 20210606: Row_Number added.
@@ -19,13 +22,15 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Exceptions; use Ada.Exceptions;
 
 package body DJH.Parse_CSV is
+
+   subtype Column_Numbers is Positive;
    package Column_Lists is new
-     Ada.Containers.Indefinite_Vectors (Positive, String);
+     Ada.Containers.Indefinite_Vectors (Column_Numbers, String);
    use Column_Lists;
 
    type Field_Element is record
       Found : Boolean;
-      Column : Positive;
+      Column : Column_Numbers;
    end record; -- Field_Element
    type Field_Arrays is array (Header_Labels) of Field_Element;
 
@@ -141,6 +146,23 @@ package body DJH.Parse_CSV is
       when E : others =>
          raise CSV_Error with "Error in Read_Header " & Exception_Message (E);
    end Read_Header;
+
+   procedure No_Header (CSV_File_Name : String) is
+      -- Opens the named, identify columns based on order in Header_Lables and
+      -- makes ready to retrive values starting from first row. Before
+      -- re-reading the same file or another file of the same type Close_CSV
+      -- must be called.
+
+      Field : Field_Element;
+
+   begin -- No_Header
+      Open (Input_File, In_File, CSV_File_Name);
+      Field :=  (Column => Column_Numbers'First, Found => True);
+      for H in Header_Labels loop
+         Field_Array (H) := Field;
+         Field.Column := Field.Column + 1;
+      end loop; -- H in Header_Labels
+   end No_Header;
 
    Row_Count : Natural := 0;
 
