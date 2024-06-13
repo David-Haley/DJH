@@ -5,7 +5,8 @@
 
 -- Author    : David Haley
 -- Created   : 13/07/2020
--- Last Edit : 18/11/2023
+-- Last Edit : 12/06/2024
+-- 20240612: No_Under_Score switch added to Read_Header.
 -- 20231118: No Header added, to allow reading of files with no header row.
 -- 20210606: Row_Number added.
 -- 20220515 : File interface changed.
@@ -16,12 +17,14 @@ generic
 
 package DJH.Parse_CSV is
 
-   procedure Read_Header (CSV_File_Name : String);
+   procedure Read_Header (CSV_File_Name : in String;
+                          No_Under_Score : in Boolean := False);
    -- Opens the named file and reads header to identify columns and makes ready
    -- to retrive values from the data rows. Before re-reading the same file or
-   -- another file of the same type Close_CSV must be called.
+   -- another file of the same type Close_CSV must be called. Set No_Under_Score
+   -- to True if the header uses spaces rether than '_' character.
 
-   procedure No_Header (CSV_File_Name : String);
+   procedure No_Header (CSV_File_Name : in String);
    -- Opens the named, identify columns based on order in Header_Lables and
    -- makes ready to retrive values starting from first row. Before re-reading
    -- the same file or another file of the same type Close_CSV must be called.

@@ -5,7 +5,8 @@
 
 -- Author    : David Haley
 -- Created   : 13/07/2020
--- Last Edit : 19/11/2023
+-- Last Edit : 12/06/2024
+-- 20240612: No_Under_Score switch added to Read_Header.
 -- 20231119: No Header added, to allow reading of files with no header row.
 -- 20220519 : Allows for processing of Windows text files with CR in Linux.
 -- 20220515 : File interface changed.
@@ -17,6 +18,7 @@ with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Strings; use Ada.Strings;
+with Ada.Strings.Fixed;
 with Ada.Strings.Maps; use Ada.Strings.Maps;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Exceptions; use Ada.Exceptions;
@@ -36,9 +38,27 @@ package body DJH.Parse_CSV is
 
    Input_File : File_Type;
 
-   procedure Find_Columns (Column_List : in out Column_Lists.Vector) is
+   procedure Find_Columns (Column_List : in out Column_Lists.Vector;
+                           No_Under_Score : in Boolean) is
 
       -- Finds the bounds of every column in line.
+      
+      function Map_Text (Text : in String;
+                         No_Under_Score : in Boolean) return String is
+                         
+         Result : String := Ada.Strings.Fixed.Trim (Text, Both);
+         -- Do not want to replace any leading or trailing spaces with '_'
+                         
+      begin -- Map_Text
+         if No_Under_Score then
+            for I in Positive range Result'First .. Result'Last loop
+               if Result (I) = ' ' then
+                  Result (I) := '_';
+               end if; -- Result (I) = ' '
+            end loop; -- I in Positive range Result'First .. Result'Last
+         end if; -- No_Under_Score
+         return Result;
+      end Map_Text;
 
       Delimeter_Set : constant Character_Set := To_Set (',');
 
@@ -67,7 +87,9 @@ package body DJH.Parse_CSV is
                raise CSV_Error with "Closing '""' not found at line" &
                Positive_Count'image (Line (Input_File) - 1);
             end if; -- Quote = 0
-            Append (Column_List, Slice (Text, Start_At, Quote - 1));
+            Append (Column_List,
+                    Map_Text (Slice (Text, Start_At, Quote - 1),
+                              No_Under_Score));
             Delimeter := Index (Text, Delimeter_Set, Quote);
             if Delimeter = 0 then
                -- end of line
@@ -81,10 +103,14 @@ package body DJH.Parse_CSV is
             end if; -- Delimeter = 0
          else
             if Delimeter = 0 then
-               Append (Column_List, Slice (Text, Start_At, Length (Text)));
+               Append (Column_List,
+                       Map_Text (Slice (Text, Start_At, Length (Text)),
+                                 No_Under_Score));
                Start_At := Length (Text) + 1;
             else
-               Append (Column_List, Slice (Text, Start_At, Delimeter - 1));
+               Append (Column_List, 
+                       Map_Text (Slice (Text, Start_At, Delimeter - 1),
+                                 No_Under_Score));
                if Delimeter = Length (Text) then
                   -- implied last column is empty
                   Append (Column_List, "");
@@ -104,17 +130,20 @@ package body DJH.Parse_CSV is
 
    Field_Array : Field_Arrays;
 
-   procedure Read_Header (CSV_File_Name : String) is
-
+   procedure Read_Header (CSV_File_Name : in String;
+                          No_Under_Score : in Boolean := False) is
+   
       -- Opens the named file and reads header to identify columns and makes
       -- ready to retrive values from the data rows. Before re-reading the same
-      -- file or another file of the same type Close_CSV must be called.
+      -- file or another file of the same type Close_CSV must be called. Set
+      -- No_Under_Score to True if the header uses spaces rather than '_'
+      -- character.
 
       Header_Label : Header_Labels;
 
    begin -- Read_Header
       Open (Input_File, In_File, CSV_File_Name);
-      Find_Columns (Column_List);
+      Find_Columns (Column_List, No_Under_Score);
       Field_Array := (others => (False, 1));
       for I in Iterate (Column_List) loop
          begin -- label read
@@ -147,7 +176,7 @@ package body DJH.Parse_CSV is
          raise CSV_Error with "Error in Read_Header " & Exception_Message (E);
    end Read_Header;
 
-   procedure No_Header (CSV_File_Name : String) is
+   procedure No_Header (CSV_File_Name : in String) is
       -- Opens the named, identify columns based on order in Header_Lables and
       -- makes ready to retrive values starting from first row. Before
       -- re-reading the same file or another file of the same type Close_CSV
@@ -174,7 +203,7 @@ package body DJH.Parse_CSV is
       if End_Of_File (Input_File) then
          return False;
       else
-         Find_Columns (Column_List);
+         Find_Columns (Column_List, False);
          if Is_Empty (Column_List) then
             return False;
          else
