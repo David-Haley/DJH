@@ -5,7 +5,9 @@
 
 -- Author    : David Haley
 -- Created   : 13/07/2020
--- Last Edit : 12/06/2024
+-- Last Edit : 25/05/2026
+
+--  20260525 : Compiler warnings removed.
 -- 20240612: No_Under_Score switch added to Read_Header.
 -- 20231119: No Header added, to allow reading of files with no header row.
 -- 20220519 : Allows for processing of Windows text files with CR in Linux.
@@ -85,7 +87,7 @@ package body DJH.Parse_CSV is
             Quote := Index (Text, Quote_Set, Start_At);
             if Quote = 0 then
                raise CSV_Error with "Closing '""' not found at line" &
-               Positive_Count'image (Line (Input_File) - 1);
+               Positive_Count'Image (Line (Input_File) - 1);
             end if; -- Quote = 0
             Append (Column_List,
                     Map_Text (Slice (Text, Start_At, Quote - 1),
@@ -144,7 +146,7 @@ package body DJH.Parse_CSV is
    begin -- Read_Header
       Open (Input_File, In_File, CSV_File_Name);
       Find_Columns (Column_List, No_Under_Score);
-      Field_Array := (others => (False, 1));
+      Field_Array := [others => (False, 1)];
       for I in Iterate (Column_List) loop
          begin -- label read
             Header_Label :=
@@ -220,7 +222,7 @@ package body DJH.Parse_CSV is
 
       -- Returns the string from the specied column
 
-      Cc : Column_Lists.Cursor :=
+      Cc : constant Column_Lists.Cursor :=
         To_Cursor (Column_List, Field_Array (Column).Column);
 
    begin -- Get_Value

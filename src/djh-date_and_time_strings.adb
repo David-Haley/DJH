@@ -1,7 +1,9 @@
 -- This package provides date and Time strings for the current time.
 -- Author    : David Haley
 -- Created   : 21/10/2017
--- Last Edit : 03/03/2021
+-- Last Edit : 25/05/2026
+
+--  20260525 : Compiler warnings removed
 -- 20210303 : Unification between PC and Raspberry Pi versions
 -- 20200711 : Date_Only added
 -- 20200620 : Date string comment corected from DD/MM/YY to DD/MM/YYYY, Get_Date
@@ -11,7 +13,6 @@
 -- 20191024: Hours_More_Than_24 switch added to allow accumulated hours more
 -- than 23:59:59 to be displayed as hours.
 
-with Ada.Calendar; use Ada.Calendar;
 with Ada.Calendar.Time_Zones; use Ada.Calendar.Time_Zones;
 with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
 with  Ada.Calendar.Formatting; use Ada.Calendar.Formatting;
@@ -86,7 +87,7 @@ package body DJH.Date_and_Time_Strings is
             Days_Result (2) := Digit_Out (Days);
             Days := Days /10;
             Days_Result (1) := Digit_Out (Days);
-            return trim (Days_Result & Result, Zero_Set, Null_Set);
+            return Trim (Days_Result & Result, Zero_Set, Null_Set);
          when Exclude_Days =>
             return Result;
          when Hours_More_Than_24 =>
@@ -99,7 +100,7 @@ package body DJH.Date_and_Time_Strings is
             Hundreds_of_Hours_Result (2) := Digit_Out (Hundreds_of_Hours);
             Hundreds_of_Hours := Hundreds_of_Hours / 10;
             Hundreds_of_Hours_Result (1) := Digit_Out (Hundreds_of_Hours);
-            return trim (Hundreds_of_Hours_Result & Result, Zero_Set, Null_Set);
+            return Trim (Hundreds_of_Hours_Result & Result, Zero_Set, Null_Set);
       end case; -- Elapsed_String_Type
    end Elapsed_Seconds;
 
@@ -113,9 +114,9 @@ package body DJH.Date_and_Time_Strings is
 
       --                                1
       --                       1234567890
-      Date_Result : string := "00/00/0000";
+      Date_Result : String := "00/00/0000";
       --                       1234
-      Year_Result : string := "0000";
+      Year_Result : String := "0000";
       Year : Year_Number;
       Month : Month_Number;
       Day : Day_Number;
@@ -148,7 +149,7 @@ package body DJH.Date_and_Time_Strings is
       -- returns YYYYMMDD
 
       --                       12345678
-      Date_Result : string := "YYYYMMDD";
+      Date_Result : String := "YYYYMMDD";
       Year : Year_Number;
       Month : Month_Number;
       Day : Day_Number;
@@ -168,9 +169,9 @@ package body DJH.Date_and_Time_Strings is
    end Reverse_Date_String;
 
    function Time_String (Another_Time : in Time := Clock) return Time_Strings is
+
       -- returns HH:MM:SS in twenty four hour mode
 
-      In_Hour, InMinute : constant Natural := 60;
       Second_Count : Natural;
       --                        12345678
       Result : Time_Strings := "00:00:00";
@@ -288,16 +289,17 @@ package body DJH.Date_and_Time_Strings is
       return Ada.Calendar.Time_Of (Year, Month, Day, Seconds);
    end Date_Only;
 
-function Time_String (Poxix_Time : in Posix_Times) return String is
+   function Time_String (Poxix_Time : in Posix_Times) return String is
+
       -- returns HH:MM:SS difference from current time
 
-      Posix_Epoch : time := Time_Of (Year => 1970,
-                                     Month => 1,
-                                     Day => 1,
-                                     Hour => 0,
-                                     Minute => 0,
-                                     Second => 0,
-                                     Time_Zone => 0);
+      Posix_Epoch : constant Time := Time_Of (Year => 1970,
+                                              Month => 1,
+                                              Day => 1,
+                                              Hour => 0,
+                                              Minute => 0,
+                                              Second => 0,
+                                              Time_Zone => 0);
       Days : Day_Count;
       Seconds, Difference_Seconds : Duration;
       Leap_Seconds : Leap_Seconds_Count;

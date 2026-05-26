@@ -5,7 +5,9 @@ with Ada.Numerics.Discrete_Random;
 
 -- Author    : David Haley
 -- Created   : 07/12/2020
--- Last Edit : 12/01/2021
+-- Last Edit : 25/05/2026
+
+--  Compiler warnings removed.
 -- 20210112: Calculation of OTP_Index corrected to ensure full lenth of OTP
 -- used.
 
@@ -29,7 +31,7 @@ package body DJH.One_Time is
    To_Ch_Index : To_Ch_Indices.Map;
    Map_Modulus : Ch_Indices;
 
-   Procedure Build_Maps (To_Code_Char : out To_Code_Chars.Map;
+   procedure Build_Maps (To_Code_Char : out To_Code_Chars.Map;
                          To_Ch_Index : out To_Ch_Indices.Map;
                          Map_Modulus : out Ch_Indices) is
 
