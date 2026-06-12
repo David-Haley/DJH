@@ -4,13 +4,16 @@
 
 --  Author    : David Haley
 --  Created   : 08/06/2026
---  Last Edit : 11/06/2024
+--  Last Edit : 12/06/2024
+
+--  20260612: Optional indented format in configuration file.
 
 generic
 
    type Field_Labels is (<>);
    File_Name : String;
    with function Encrypted (Field_Label : Field_Labels) return Boolean;
+   Indented : Boolean := True;
 
 package DJH.JSON_Configuration is
 

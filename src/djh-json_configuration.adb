@@ -4,7 +4,9 @@
 
 --  Author    : David Haley
 --  Created   : 08/06/2026
---  Last Edit : 11/06/2024
+--  Last Edit : 12/06/2024
+
+--  20260612: Optional indented format in configuration file.
 
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings; use Ada.Strings;
@@ -164,7 +166,7 @@ package body DJH.JSON_Configuration is
          end if; -- Value_Array (F) = Null_Unbounded_String
       end loop; -- F in Field_Labels
       Create (Output_File, Out_File, File_Name);
-      Put (Output_File, Write (To_Write));
+      Put (Output_File, Write (To_Write, not Indented));
       Close (Output_File);
    exception
       when E: others =>
