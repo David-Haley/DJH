@@ -1,5 +1,5 @@
-with "lib_gnatcoll.gpr";
-with "lib_gnatcoll_minimal.gpr";
+with "../gnatcoll/lib_gnatcoll_minimal.gpr";
+with "../gnatcoll/lib_gnatcoll.gpr";
 project Test_JSON_Configuration is
 
    for Languages    use ("Ada");
