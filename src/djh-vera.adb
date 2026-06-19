@@ -1,7 +1,9 @@
 -- HTTP interface to vera
 -- Author    : David Haley
 -- Created   : 02/04/2019
--- Last Edit : 16/09/2023
+-- Last Edit : 19/06/2026
+
+--  20260619 : Compiler warnings removed.
 -- 20230915: Localisation of constants.
 -- 20210608: moved to DJH library
 
@@ -25,7 +27,7 @@ package body DJH.Vera is
       Vera_Port : constant Port_Type := 3480;
       CrLf : constant String := ASCII.CR & ASCII.LF;
 
-      Host_Entry : Host_Entry_Type := Get_Host_By_Name(Name);
+      Host_Entry : constant Host_Entry_Type := Get_Host_By_Name(Name);
       Address : Sock_Addr_Type;
       Socket : Socket_Type;
       Channel : Stream_Access;
@@ -44,9 +46,9 @@ package body DJH.Vera is
             raise Vera_Error with "socket creation - " & Exception_Message (E);
       end; -- Create Socket
       begin -- Stream Write
-         Channel := Gnat.Sockets.Stream (Socket);
-         String'Write (Channel, "GET /" & Command & " HTTP/1.1" & CRLF &
-                         "Host: " & Name & CRLF & CRLF);
+         Channel := GNAT.Sockets.Stream (Socket);
+         String'Write (Channel, "GET /" & Command & " HTTP/1.1" & CrLf &
+                         "Host: " & Name & CrLf & CrLf);
       exception
          when E : others =>
             raise Vera_Error with "stream write - " & Exception_Message (E);
@@ -79,7 +81,7 @@ package body DJH.Vera is
       Response_2 : constant String := "content-Type: application/json";
       Response_3 : constant String :=
         "{ ""u:SetTargetResponse"": { ""JobID"": """;
-      Start_at : Positive := 1;
+      Start_At : Positive := 1;
       First : Natural;
 
    begin -- Check_Response
@@ -116,15 +118,15 @@ package body DJH.Vera is
    end Assemble_Message;
 
    function Switch_On (Name : in String; Device : in Devices) return Boolean is
-      -- turns switch Device on and returns true if successful
 
-      Reply : Unbounded_String;
+      -- turns switch Device on and returns true if successful
 
    begin -- Switch_On
       return Check_Response (HTTP_GET (Name, Assemble_Message (Device, '1')));
    end Switch_On;
 
    function Switch_Off (Name : in String; Device : in Devices) return Boolean is
+
       -- turns switch Device off and returns true if successful
 
    begin -- Switch_Off

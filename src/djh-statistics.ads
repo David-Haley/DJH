@@ -1,8 +1,9 @@
 -- Basic statistics, calculates Mean and Variance.
 -- Author    : David Haley
 -- Created   : 09/10/2017
--- Last Edit : 09/08/2025
+-- Last Edit : 18/06/2026
 
+--  20260618 : Compiler warnings removed;
 -- 20250809 : Corrected the frequency, the first isntance of a value should
 -- count as 1 not 0, Corrected Variance and added Standard_Deviation. Results
 -- Made generic floats.
@@ -10,7 +11,6 @@
 -- 12/10/2017: Minimum and Maximum functions added
 -- 13/10/2017: use My_Float, Frequency added;
 
-with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Containers.Ordered_Maps;
 
 generic
@@ -19,7 +19,7 @@ generic
 
 package DJH.Statistics is
 
-	type Data_Stores is Limited Private;
+   type Data_Stores is limited private;
 
    procedure Clear (Data_Store : in out Data_Stores);
    -- Clears the data accumulators.
@@ -60,22 +60,21 @@ package DJH.Statistics is
    -- Returns the number of occurrances of of samples entered of the specified
    -- Value in the data. return values can be used to build a histogram.
 
-   Insufficient_Samples : Exception;
+   Insufficient_Samples : exception;
    -- Raised if Mean or Variance is called when Count is less than two.
    
-   Private
+private
    
-	package Occurance_Counts is new
+   package Occurance_Counts is new
 	  Ada.Containers.Ordered_Maps (Data_Sample, Positive);
 	  -- Note only values that have occured at least once are stored , hence
-	  -- Positive.
-	  
-	use Occurance_Counts;
+	  -- Positive.  
+   use Occurance_Counts;
 
-	type Data_Stores is record
+   type Data_Stores is record
 		Sum, Square_Sum : Float_Type'Base := 0.0;
       Sample_Count : Natural := 0;
 		Occurance_Count : Occurance_Counts.Map;
-   end Record; -- Data_Stores
+   end record; -- Data_Stores
    
 end DJH.Statistics;

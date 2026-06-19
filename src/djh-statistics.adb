@@ -1,8 +1,9 @@
 -- Basic statistics, calculates Mean and Variance.
 -- Author    : David Haley
 -- Created   : 09/10/2017
--- Last Edit : 09/08/2025
+-- Last Edit : 18/06/2026
 
+--  20260618 : Complier warnings removed.
 -- 20250809 : Corrected the frequency, the first isntance of a value should
 -- count as 1 not 0, Corrected Variance and added Standard_Deviation. Results
 -- Made generic floats.
@@ -14,7 +15,7 @@ with Ada.Numerics.Generic_Elementary_Functions;
 
 package body DJH.Statistics is
 
-	subtype This_Float is Float_Type'Base;
+   subtype This_Float is Float_Type'Base;
 
    package My_Numerics is new
       Ada.Numerics.Generic_Elementary_Functions (This_Float);
@@ -41,9 +42,9 @@ package body DJH.Statistics is
       if Contains (Data_Store.Occurance_Count, Data) then
 			Data_Store.Occurance_Count (Data) := 
 			  Data_Store.Occurance_Count (Data) + 1;
-		else
+      else
 			Insert (Data_Store.Occurance_Count, Data, 1);
-		end if; -- Contains (Data_Store.Occurance_Count, Data)
+      end if; -- Contains (Data_Store.Occurance_Count, Data)
    end Sample;
 
    function Count (Data_Store : in Data_Stores) return Natural is
@@ -76,7 +77,7 @@ package body DJH.Statistics is
       if Data_Store.Sample_Count < 2 then
          raise Insufficient_Samples with "Standard_Deviation";
       else
-         return sqrt (Variance (Data_Store, Population));
+         return Sqrt (Variance (Data_Store, Population));
       end if; -- Data_Store.Sample_Count
    end Standard_Deviation;
 
@@ -90,12 +91,12 @@ package body DJH.Statistics is
       if Data_Store.Sample_Count < 2 then
          raise Insufficient_Samples with "Variance";
       else
-			if Population then
-				return (Data_Store.Square_Sum - Data_Store.Sum ** 2 /
+         if Population then
+            return (Data_Store.Square_Sum - Data_Store.Sum ** 2 /
 				  This_Float (Data_Store.Sample_Count)) /
 				  This_Float (Data_Store.Sample_Count);
-			else
-				return (Data_Store.Square_Sum - Data_Store.Sum ** 2 /
+         else
+            return (Data_Store.Square_Sum - Data_Store.Sum ** 2 /
 				  This_Float (Data_Store.Sample_Count)) /
 				  This_Float (Data_Store.Sample_Count - 1);
          end if; -- Population
@@ -107,7 +108,7 @@ package body DJH.Statistics is
       -- data accumulators.
 
    begin -- Minimum
-		if Data_Store.Sample_Count < 1 then
+      if Data_Store.Sample_Count < 1 then
          raise Insufficient_Samples with "Minimum";
       end if; -- Data_Store.Sample_Count < 1
       return First_Key (Data_Store.Occurance_Count);
@@ -117,7 +118,7 @@ package body DJH.Statistics is
       -- Returns the maximum value of the samples that have been added to the
       -- data accumulators.
    begin -- Maximum
-		if Data_Store.Sample_Count < 1 then
+      if Data_Store.Sample_Count < 1 then
          raise Insufficient_Samples with "Maximum";
       end if; -- Data_Store.Sample_Count < 1
       return Last_Key (Data_Store.Occurance_Count);
@@ -129,11 +130,11 @@ package body DJH.Statistics is
    -- value Data. return values can be used to build a histogram.
 
    begin -- Frequency
-		if Contains (Data_Store.Occurance_Count, Data) then
+      if Contains (Data_Store.Occurance_Count, Data) then
          return Data_Store.Occurance_Count (Data);
       else
-			return 0;
-		end if; -- Contains (Data_Store.Occurance_Count, Data)
+         return 0;
+      end if; -- Contains (Data_Store.Occurance_Count, Data)
    end Frequency;
 
 end DJH.Statistics;
