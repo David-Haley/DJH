@@ -3,7 +3,9 @@
 
 -- Author    : David Haley
 -- Created   : 12/02/2021
--- Last Edit : 18/03/2021
+-- Last Edit : 26/10/2026
+-- 20261026 : Is_Connected added. Any communications failure closes the
+-- connection and raises Modbus_Error; Connect must then be called again.
 
 with Ada.Streams; use Ada.Streams;
 with Interfaces; use Interfaces;
@@ -30,6 +32,10 @@ package DJH.Modbus is
 
    -- Use IPV4 only (GNAT.Sockets.Family_Inet)
 
+   function Is_Connected return Boolean;
+   -- True after a successful Connect until Close_Connection is called or a
+   -- communications failure occurs.
+
    function Read_Register (Unit_Id : in Unit_Ids;
                            Register_Address : in Register_Addresses)
                            return Registers;
@@ -41,7 +47,7 @@ package DJH.Modbus is
 
    procedure Close_Connection;
 
-   -- Closes connection
+   -- Closes connection, never raises an exception
 
    -- Type Conversions from 16 bit registers to SMA data types
 

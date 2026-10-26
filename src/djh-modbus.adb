@@ -3,7 +3,10 @@
 
 -- Author    : David Haley
 -- Created   : 17/02/2021
--- Last Edit : 20/08/2022
+-- Last Edit : 26/10/2026
+-- 20261026 : Improved reliability, connect and receive time outs, TCP keep
+-- alive, complete responses received, peer closure detected, any failure
+-- closes the connection and is reported as Modbus_Error.
 -- 20220820 : Exception messages correcred.
 
 with Ada.Characters.Latin_1; use Ada.Characters.Latin_1;
@@ -28,32 +31,76 @@ package body DJH.Modbus is
    Register_Shift : constant Natural := 16;
    Low_Mask : constant Registers := 2#0000000011111111#;
 
-   Request_Socket : Socket_Type;
+   Connect_Timeout : constant Selector_Duration := 10.0;
+   Receive_Timeout_Duration : constant Timeval_Duration := 10.0;
+   -- Bounds the time spent waiting for the server, a lost connection is then
+   -- reported as Modbus_Error rather than blocking indefinitely.
+   Keep_Alive_Idle_Time : constant Natural := 60;
+   Keep_Alive_Probe_Interval : constant Natural := 10;
+   Keep_Alive_Probes : constant Natural := 3;
+
+   Request_Socket : Socket_Type := No_Socket;
+   Connected : Boolean := False;
    Transaction_Id : Registers := 0;
 
-   procedure Connect (Server_Name : in String;
-                      Server_Port : in Port_Type := Default_Modbus_Port) is
+   Server_Exception : exception;
+   -- Raised internally when the server returns a Modbus exception response,
+   -- the connection remains usable.
 
-      SS_No_Delay : constant Option_Type :=
-        (Name => No_Delay, Enabled => True);
+   procedure Connect_Address (Request_Socket_Address : in Sock_Addr_Type) is
 
-      Server_Entry : Host_Entry_Type := Get_Host_By_Name (Server_Name);
-      Request_Socket_Address : Sock_Addr_Type;
+      -- Use IPV4 only (GNAT.Sockets.Family_Inet)
 
-   begin -- Connect
-      Request_Socket_Address :=
-        Network_Socket_Address (Addresses (Server_Entry),
-                                Server_Port);
+      Status : Selector_Status;
+
+   begin -- Connect_Address
+      Close_Connection;
+      -- ensures any previous socket is released
       Create_Socket (Request_Socket,
                      Family_Inet,
                      Socket_Stream,
                      IP_Protocol_For_TCP_Level);
       Set_Socket_Option (Request_Socket,
                          IP_Protocol_For_TCP_Level,
-                         SS_No_Delay);
-      Bind_Socket (Request_Socket,
-                   Network_Socket_Address (No_Inet_Addr, Any_Port));
-      Connect_Socket (Request_Socket, Request_Socket_Address);
+                         (Name => No_Delay, Enabled => True));
+      Set_Socket_Option (Request_Socket,
+                         Socket_Level,
+                         (Name => Keep_Alive, Enabled => True));
+      Set_Socket_Option (Request_Socket,
+                         IP_Protocol_For_TCP_Level,
+                         (Name => Keep_Alive_Idle,
+                          Idle_Seconds => Keep_Alive_Idle_Time));
+      Set_Socket_Option (Request_Socket,
+                         IP_Protocol_For_TCP_Level,
+                         (Name => Keep_Alive_Interval,
+                          Interval_Seconds => Keep_Alive_Probe_Interval));
+      Set_Socket_Option (Request_Socket,
+                         IP_Protocol_For_TCP_Level,
+                         (Name => Keep_Alive_Count,
+                          Count => Keep_Alive_Probes));
+      Set_Socket_Option (Request_Socket,
+                         Socket_Level,
+                         (Name => Receive_Timeout,
+                          Timeout => Receive_Timeout_Duration));
+      Connect_Socket (Request_Socket, Request_Socket_Address, Connect_Timeout,
+                      Status => Status);
+      if Status /= Completed then
+         raise Modbus_Error with "connection timed out";
+      end if; -- Status /= Completed
+      Connected := True;
+   exception
+      when others =>
+         Close_Connection;
+         raise;
+   end Connect_Address;
+
+   procedure Connect (Server_Name : in String;
+                      Server_Port : in Port_Type := Default_Modbus_Port) is
+
+   begin -- Connect
+      Connect_Address
+        (Network_Socket_Address (Addresses (Get_Host_By_Name (Server_Name)),
+                                 Server_Port));
    exception
       when E : others =>
          raise Modbus_Error with "Connect (Name) - " & Exception_Message (E);
@@ -64,30 +111,18 @@ package body DJH.Modbus is
 
       -- Use IPV4 only (GNAT.Sockets.Family_Inet)
 
-      SS_No_Delay : constant Option_Type :=
-        (Name => No_Delay, Enabled => True);
-
-      Server_Entry : Host_Entry_Type :=  Get_Host_By_Address (Server_IP);
-      Request_Socket_Address : Sock_Addr_Type;
-
    begin -- Connect
-      Request_Socket_Address :=
-        Network_Socket_Address (Addresses (Server_Entry),
-                                Server_Port);
-      Create_Socket (Request_Socket,
-                     Family_Inet,
-                     Socket_Stream,
-                     IP_Protocol_For_TCP_Level);
-      Set_Socket_Option (Request_Socket,
-                         IP_Protocol_For_TCP_Level,
-                         SS_No_Delay);
-      Bind_Socket (Request_Socket,
-                   Network_Socket_Address (No_Inet_Addr, Any_Port));
-      Connect_Socket (Request_Socket, Request_Socket_Address);
+      Connect_Address (Network_Socket_Address (Server_IP, Server_Port));
    exception
       when E : others =>
          raise Modbus_Error with "Connect (address) - " & Exception_Message (E);
    end Connect;
+
+   function Is_Connected return Boolean is
+
+   begin -- Is_Connected
+      return Connected;
+   end Is_Connected;
 
    function Split_Register (Register : in Registers) return Stream_Pairs is
 
@@ -148,7 +183,7 @@ package body DJH.Modbus is
       if Assemble_Register (Response (1 .. 2)) /= Transaction_Id then
          raise Modbus_Error with "Mismatched Transaction_Id, expected" &
            Transaction_Id'Img & " and received" &
-           Assemble_Register (Response (0 .. 1))'img;
+           Assemble_Register (Response (1 .. 2))'img;
       end if; -- Assemble_Register (Response (1 .. 2)) /= Transaction_Id
       if Assemble_Register (Response (3 .. 4)) /= 0 then
          raise Modbus_Error with "Unknown protocol" &
@@ -179,61 +214,42 @@ package body DJH.Modbus is
       Register_Start := Header_Length + 3;
    end Strip_Encapulation;
 
+   procedure Receive_Exact (Item : out Stream_Element_Array) is
+
+      -- Receives exactly Item'Length elements, TCP may deliver a response in
+      -- more than one segment.
+
+      First : Stream_Element_Offset := Item'First;
+      Last : Stream_Element_Offset;
+
+   begin -- Receive_Exact
+      while First <= Item'Last loop
+         Receive_Socket (Request_Socket, Item (First .. Item'Last), Last);
+         if Last < First then
+            raise Modbus_Error with "connection closed by server";
+         end if; -- Last < First
+         First := Last + 1;
+      end loop; -- First <= Item'Last
+   exception
+      when E : Socket_Error =>
+         if Resolve_Exception (E) = Resource_Temporarily_Unavailable then
+            raise Modbus_Error with "receive timed out";
+         else
+            raise;
+         end if; -- Resolve_Exception (E) = Resource_Temporarily_Unavailable
+   end Receive_Exact;
+
    function Read_Register (Unit_Id : in Unit_Ids;
                            Register_Address : in Register_Addresses)
                            return Registers is
 
       -- uses Modbus function Read_Holding_Registers
 
-      PAU_Request : PAU_Request_3;
-      Last : Stream_Element_Offset;
-      Rx_Buffer : Stream_Element_Array (1 .. 1024); -- oversized buffer
-      Register_Start : Stream_Element_Offset;
+      Register_Array : Register_Arrays (Register_Address .. Register_Address);
 
    begin -- Read_Register
-      Transaction_Id := Transaction_Id + 1;
-      PAU_Request (1) := Read_Holding_Registers; -- Function Code
-      PAU_Request (2 .. 3) := Split_Register (Registers (Register_Address));
-      -- Start Address
-      PAU_Request (4 .. 5) := Split_Register (1); -- Quantity of registers
-      declare -- Send Request
-         Request : Stream_Element_Array :=
-           Encapuslate (Transaction_Id, Unit_Id, PAU_Request);
-      begin
-         Send_Socket (Request_Socket, Request, Last);
-         if Last /= Request'Last then
-            raise Modbus_Error with "Read_Register incomplete request sent";
-         end if; -- Last /= Request'Last
-      exception
-         when Modbus_Error =>
-            raise;
-         when E : others =>
-            raise Modbus_Error with "Read_Register send request - " &
-              Exception_Message (E);
-      end; -- Send Request
-      begin -- Receive
-         Receive_Socket (Request_Socket, Rx_Buffer, Last,
-                         Peek_At_Incoming_Data);
-      exception
-         when E : others =>
-            raise Modbus_Error with "Read_Register receive error - " &
-              Exception_Message (E);
-      end; -- Receive
-      declare -- Parse Response
-         Response : Stream_Element_Array (1 .. Last);
-      begin
-         Receive_Socket (Request_Socket, Response, Last);
-         if Last = Exception_Length then
-            raise Modbus_Error with "Read_Register error code" &
-              Response (Exception_Length -1)'img & " exception code" &
-              Response (Exception_Length)'Img;
-         else
-            Strip_Encapulation (Transaction_Id, Unit_Id, 1, Response,
-                                Register_Start);
-            return Assemble_Register (Response (Register_Start ..
-                                        Register_Start + 1));
-         end if; -- Last = Exception_Length
-      end; -- Parse Response
+      Read_Registers (Unit_Id, Register_Array);
+      return Register_Array (Register_Address);
    end Read_Register;
 
    procedure Read_Registers (Unit_Id : in Unit_Ids;
@@ -241,14 +257,20 @@ package body DJH.Modbus is
 
       -- uses Modbus function 3
 
+      Exception_Function : constant Stream_Element :=
+        Read_Holding_Registers + 16#80#;
       PAU_Request : PAU_Request_3;
       Last : Stream_Element_Offset;
-      Rx_Buffer : Stream_Element_Array (1 .. 1024); -- oversized buffer
+      Header : Stream_Element_Array (1 .. Header_Length);
+      Message_Length : Stream_Element_Offset;
       Register_Start : Stream_Element_Offset;
-      Number_of_Registers : Registers :=
+      Number_of_Registers : constant Registers :=
         Registers (Register_Array'Last - Register_Array'First + 1);
 
    begin -- Read_Registers
+      if not Connected then
+         raise Modbus_Error with "not connected";
+      end if; -- not Connected
       Transaction_Id := Transaction_Id + 1;
       PAU_Request (1) := Read_Holding_Registers; -- Function Code
       PAU_Request (2 .. 3) := Split_Register (Registers (Register_Array'First));
@@ -256,36 +278,32 @@ package body DJH.Modbus is
       PAU_Request (4 .. 5) := Split_Register (Number_of_Registers);
       -- Quantity of registers
       declare -- Send Request
-         Request : Stream_Element_Array :=
+         Request : constant Stream_Element_Array :=
            Encapuslate (Transaction_Id, Unit_Id, PAU_Request);
       begin
          Send_Socket (Request_Socket, Request, Last);
          if Last /= Request'Last then
-            raise Modbus_Error with "Read_Registers incomplete request sent";
+            raise Modbus_Error with "incomplete request sent";
          end if; -- Last /= Request'Last
-      exception
-         when Modbus_Error =>
-            raise;
-         when E : others =>
-            raise Modbus_Error with "Read_Registers send request - " &
-              Exception_Message (E);
       end; -- Send Request
-      begin -- Receive
-         Receive_Socket (Request_Socket, Rx_Buffer, Last,
-                         Peek_At_Incoming_Data);
-      exception
-         when E : others =>
-            raise Modbus_Error with "Read_Registers receive error - " &
-              Exception_Message (E);
-      end; -- Receive
+      Receive_Exact (Header);
+      Message_Length := Assemble_Offset (Header (5 .. 6));
+      -- Bytes including Unit_Id to end
+      if Message_Length not in Exception_Length - Header_Length + 1 .. 254 then
+         raise Modbus_Error with "invalid message length" &
+           Message_Length'Img;
+      end if; -- Message_Length not in ...
       declare -- Parse Response
-         Response : Stream_Element_Array (1 .. Last);
+         Response : Stream_Element_Array (1 .. Header_Length - 1 +
+                                            Message_Length);
       begin
-         Receive_Socket (Request_Socket, Response, Last);
-         if Last = Exception_Length then
-            raise Modbus_Error with "Error Code" &
-              Response (Exception_Length -1)'img & " exception code" &
-              Response (Exception_Length)'Img;
+         Response (Header'Range) := Header;
+         Receive_Exact (Response (Header_Length + 1 .. Response'Last));
+         if Response (Header_Length + 1) = Exception_Function and
+           Assemble_Register (Response (1 .. 2)) = Transaction_Id then
+            raise Server_Exception with "Error Code" &
+              Response (Header_Length + 1)'img & " exception code" &
+              Response (Header_Length + 2)'Img;
          else
             Strip_Encapulation (Transaction_Id, Unit_Id, Number_of_Registers,
                                 Response, Register_Start);
@@ -296,17 +314,41 @@ package body DJH.Modbus is
                                         Register_Start + 1));
                Register_Start := Register_Start + 2;
             end loop; --
-         end if; -- Last = Exception_Length
+         end if; -- Response (Header_Length + 1) = Exception_Function ...
       end; -- Parse Response
+   exception
+      when E : Server_Exception =>
+         -- Valid response from the server, connection remains usable
+         raise Modbus_Error with "Read_Registers - " & Exception_Message (E);
+      when E : others =>
+         -- Socket error, time out or a response which cannot be trusted,
+         -- the connection must be reestablished.
+         Close_Connection;
+         raise Modbus_Error with "Read_Registers - " & Exception_Message (E);
    end Read_Registers;
 
    procedure Close_Connection is
 
-   -- Closes connection
+   -- Closes connection, any errors are ignored since the connection may
+   -- already be broken.
 
    begin -- Close_Connection
-      Shutdown_Socket (Request_Socket, Shut_Read_Write);
-      Close_Socket (Request_Socket);
+      Connected := False;
+      if Request_Socket /= No_Socket then
+         begin -- Shutdown
+            Shutdown_Socket (Request_Socket, Shut_Read_Write);
+         exception
+            when others =>
+               null;
+         end; -- Shutdown
+         begin -- Close
+            Close_Socket (Request_Socket);
+         exception
+            when others =>
+               null;
+         end; -- Close
+         Request_Socket := No_Socket;
+      end if; -- Request_Socket /= No_Socket
    end Close_Connection;
 
    -- Type Conversions from 16 bit registers to SMA data types
