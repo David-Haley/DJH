@@ -4,10 +4,12 @@
 
 --  Author    : David Haley
 --  Created   : 08/06/2026
---  Last Edit : 12/06/2024
+--  Last Edit : 31/10/2026
 
+--  20261031: Read_File not used, it is not available in GNATCOLL 24.
 --  20260612: Optional indented format in configuration file.
 
+with Ada.Characters.Latin_1;
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings; use Ada.Strings;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -43,6 +45,24 @@ package body DJH.JSON_Configuration is
       return Key;
    end Make_Key;
 
+   function File_Contents return Unbounded_String is
+
+      --  Returns the content of the named file. Line ends are retained so that
+      --  parsing errors report the correct line.
+
+      Input_File : File_Type;
+      Contents : Unbounded_String := Null_Unbounded_String;
+
+   begin -- File_Contents
+      Open (Input_File, In_File, File_Name);
+      while not End_Of_File (Input_File) loop
+         Append (Contents, Get_Line (Input_File));
+         Append (Contents, Ada.Characters.Latin_1.LF);
+      end loop; -- not End_Of_File (Input_File)
+      Close (Input_File);
+      return Contents;
+   end File_Contents;
+
    procedure Read_Configuration is
 
       --  Reads the named file. Raises JSON_Configuration_Error if the file does
@@ -53,7 +73,7 @@ package body DJH.JSON_Configuration is
       Local : JSON_Value; 
 
    begin -- Read_Configuration
-      Result := Read_File (File_Name);
+      Result := Read (File_Contents);
       if Result.Success then
          Configuration := Clone (Result.Value);
       else
