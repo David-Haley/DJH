@@ -3,8 +3,10 @@
 
 -- Author    : David Haley
 -- Created   : 17/02/2021
--- Last Edit : 26/10/2026
--- 20261026 : Improved reliability, connect and receive time outs, TCP keep
+-- Last Edit : 30/10/2026
+
+--  20261030 : Compiler warnings removed
+--  20261026 : Improved reliability, connect and receive time outs, TCP keep
 -- alive, complete responses received, peer closure detected, any failure
 -- closes the connection and is reported as Modbus_Error.
 -- 20220820 : Exception messages correcred.
@@ -12,7 +14,6 @@
 with Ada.Characters.Latin_1; use Ada.Characters.Latin_1;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Exceptions; use Ada.Exceptions;
-with Ada.Text_IO; use Ada.Text_IO;
 
 package body DJH.Modbus is
 
@@ -138,8 +139,9 @@ package body DJH.Modbus is
    function Assemble_Register (Stream_Pair : in Stream_Pairs)
                                 return Registers is
 
-      High : Registers := Shift_Left (Registers (Stream_Pair (1)), Byte_Shift);
-      Low : Registers := Registers (Stream_Pair (2));
+      High : constant Registers :=
+        Shift_Left (Registers (Stream_Pair (1)), Byte_Shift);
+      Low : constant Registers := Registers (Stream_Pair (2));
 
    begin -- Assemble_Register
       return High or Low;
@@ -158,7 +160,7 @@ package body DJH.Modbus is
                          PAU : in Stream_Element_Array)
                          return Stream_Element_Array is
 
-      Result : Stream_Element_Array (0 .. Header_Length + PAU'Last - Pau'First);
+      Result : Stream_Element_Array (0 .. Header_Length + PAU'Last - PAU'First);
 
    begin -- Encapuslate
       Result (0 .. 1) := Split_Register (Transaction_Id);
@@ -183,7 +185,7 @@ package body DJH.Modbus is
       if Assemble_Register (Response (1 .. 2)) /= Transaction_Id then
          raise Modbus_Error with "Mismatched Transaction_Id, expected" &
            Transaction_Id'Img & " and received" &
-           Assemble_Register (Response (1 .. 2))'img;
+           Assemble_Register (Response (1 .. 2))'Img;
       end if; -- Assemble_Register (Response (1 .. 2)) /= Transaction_Id
       if Assemble_Register (Response (3 .. 4)) /= 0 then
          raise Modbus_Error with "Unknown protocol" &
@@ -198,7 +200,7 @@ package body DJH.Modbus is
       end if; -- Response'Last /= ...
       if Response (Header_Length) /= Unit_Id then
          raise Modbus_Error with "Mismatched Unit_Id, expected" & Unit_Id'Img &
-           " and received" & Response (Header_Length)'img;
+           " and received" & Response (Header_Length)'Img;
       end if; -- Response (Header_Length) /= Unit_Id
       if Response (Header_Length + 1) /= Read_Holding_Registers then
          raise Modbus_Error with "Mismatched function, expected " &
@@ -302,7 +304,7 @@ package body DJH.Modbus is
          if Response (Header_Length + 1) = Exception_Function and
            Assemble_Register (Response (1 .. 2)) = Transaction_Id then
             raise Server_Exception with "Error Code" &
-              Response (Header_Length + 1)'img & " exception code" &
+              Response (Header_Length + 1)'Img & " exception code" &
               Response (Header_Length + 2)'Img;
          else
             Strip_Encapulation (Transaction_Id, Unit_Id, Number_of_Registers,
@@ -359,8 +361,8 @@ package body DJH.Modbus is
       -- Register Array, The first is treated as most significant than the
       -- second.
 
-      First : Register_Addresses := Register_Array'First;
-      Second : Register_Addresses := First + 1;
+      First : constant Register_Addresses := Register_Array'First;
+      Second : constant Register_Addresses := First + 1;
 
    begin -- To_U32
       return Shift_Left (Unsigned_32 (Register_Array (First)), Register_Shift)
@@ -372,7 +374,7 @@ package body DJH.Modbus is
       -- Returns the Unsigned_64 representation of the first four Registers in
       -- Register Array, The first is treated as most significant.
 
-      First : Register_Addresses := Register_Array'First;
+      First : constant Register_Addresses := Register_Array'First;
       Result : Unsigned_64 := Unsigned_64 (Register_Array (First));
 
    begin -- To_U64
